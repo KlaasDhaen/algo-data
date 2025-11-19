@@ -1,0 +1,179 @@
+class Node:
+    def __init__(self, task_name: str, duration: int, priority: int):
+        self.task_name = task_name
+        self.duration = duration
+        self.priority = priority
+        self.next = None
+
+    def __repr__(self):
+        return f"Node({self.task_name!r}, {self.duration}, {self.priority})"
+
+
+class LinkedList:
+    def __init__(self):
+        self.head = None
+
+    # ---------------------------
+    # Add task to end of list
+    # ---------------------------
+    def add_task(self, task_name, duration, priority):
+        new_node = Node(task_name, duration, priority)
+
+        if not self.head:
+            self.head = new_node
+            return
+
+        current = self.head
+        while current.next:
+            current = current.next
+
+        current.next = new_node
+
+    # ---------------------------
+    # Remove task by name
+    # ---------------------------
+    def remove_task(self, task_name):
+        current = self.head
+        prev = None
+
+        while current:
+            if current.task_name == task_name:
+                if prev:
+                    prev.next = current.next
+                else:
+                    self.head = current.next
+                return True
+            prev = current
+            current = current.next
+
+        return False  # Not found
+
+    # ---------------------------
+    # Display all tasks
+    # ---------------------------
+    def display_tasks(self):
+        current = self.head
+        while current:
+            print(f"{current.task_name} | Duration: {current.duration} | Priority: {current.priority}")
+            current = current.next
+
+    # ---------------------------
+    # Find a task
+    # ---------------------------
+    def find_task(self, task_name):
+        current = self.head
+        while current:
+            if current.task_name == task_name:
+                return {
+                    "task_name": current.task_name,
+                    "duration": current.duration,
+                    "priority": current.priority
+                }
+            current = current.next
+        return None
+
+    # ---------------------------
+    # Calculate total duration
+    # ---------------------------
+    def calculate_total_duration(self):
+        total = 0
+        current = self.head
+        while current:
+            total += current.duration
+            current = current.next
+        return total
+
+    # ---------------------------
+    # Read tasks from CSV
+    # CSV format: name, duration, priority
+    # ---------------------------
+    def read_tasks_from_csv(self, file_path):
+        with open(file_path, 'r', encoding='utf-8') as file:
+            for line in file:
+                task_name, duration, priority = line.strip().split(',')
+                self.add_task(task_name, int(duration), int(priority))
+
+
+    # =========================================================
+    #   HELPER METHODS FOR SORTED INSERT
+    # =========================================================
+
+    def sorted_insert_by_priority(self, head, node):
+        """Insert node into new sorted list based on priority only."""
+        if head is None or node.priority < head.priority:
+            node.next = head
+            return node
+
+        current = head
+        while current.next and current.next.priority <= node.priority:
+            current = current.next
+
+        node.next = current.next
+        current.next = node
+        return head
+
+    def sorted_insert_by_priority_duration(self, head, node):
+        """
+        Insert node into new sorted list based on:
+        1. priority (ascending)
+        2. duration (ascending)
+        """
+
+        if (head is None or
+            node.priority < head.priority or
+            (node.priority == head.priority and node.duration < head.duration)):
+            node.next = head
+            return node
+
+        current = head
+        while current.next:
+            if (node.priority < current.next.priority or
+                (node.priority == current.next.priority and node.duration < current.next.duration)):
+                break
+            current = current.next
+
+        node.next = current.next
+        current.next = node
+        return head
+
+    # =========================================================
+    #   REORDER METHODS
+    # =========================================================
+
+    def reorder_tasks_by_priority(self):
+        new_head = None
+        current = self.head
+
+        while current:
+            next_node = current.next
+            current.next = None
+            new_head = self.sorted_insert_by_priority(new_head, current)
+            current = next_node
+
+        self.head = new_head
+
+    def reorder_tasks_by_priority_duration(self):
+        new_head = None
+        current = self.head
+
+        while current:
+            next_node = current.next
+            current.next = None
+            new_head = self.sorted_insert_by_priority_duration(new_head, current)
+            current = next_node
+
+        self.head = new_head
+
+ll = LinkedList()
+
+# Load tasks from CSV
+ll.read_tasks_from_csv("tasks.csv")
+
+# Reorder tasks to minimize total completion time while respecting priority
+ll.reorder_tasks_by_priority_duration()
+
+# Display optimized schedule
+ll.display_tasks()
+
+# Print total duration
+print("Total duration:", ll.calculate_total_duration(), "minutes")
